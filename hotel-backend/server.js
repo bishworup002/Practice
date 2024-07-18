@@ -10,12 +10,29 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
-})
+});
+
+// Middleware to log requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
+// Test database connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Error connecting to the database:', err);
+  } else {
+    console.log('Successfully connected to the database');
+  }
+});
 
 // API to get hotel details
 app.get('/api/hotel/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
+    console.log(`Fetching hotel details for slug: ${slug}`);
+    
     const hotelQuery = `
       SELECT h.*, array_agg(hi.image_url) as images
       FROM hotels h
@@ -26,6 +43,7 @@ app.get('/api/hotel/:slug', async (req, res) => {
     const hotelResult = await pool.query(hotelQuery, [slug]);
 
     if (hotelResult.rows.length === 0) {
+      console.log(`Hotel not found for slug: ${slug}`);
       return res.status(404).json({ error: 'Hotel not found' });
     }
 
@@ -33,7 +51,7 @@ app.get('/api/hotel/:slug', async (req, res) => {
     res.json(hotel);
   } catch (error) {
     console.error('Error fetching hotel details:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
@@ -41,12 +59,14 @@ app.get('/api/hotel/:slug', async (req, res) => {
 app.get('/api/hotel/:slug/rooms', async (req, res) => {
   try {
     const { slug } = req.params;
+    console.log(`Fetching room information for hotel slug: ${slug}`);
+    
     const roomsQuery = 'SELECT * FROM rooms WHERE hotel_slug = $1';
     const roomsResult = await pool.query(roomsQuery, [slug]);
     res.json(roomsResult.rows);
   } catch (error) {
     console.error('Error fetching room information:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error.message });
   }
 });
 
