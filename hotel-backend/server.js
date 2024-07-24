@@ -1,8 +1,12 @@
 const express = require('express');
 const { Pool } = require('pg');
+const cors = require('cors');
 const app = express();
+const path = require('path');
 
 require('dotenv').config();
+
+app.use(cors());
 
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -11,6 +15,9 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   port: process.env.DB_PORT,
 });
+
+// Serve static files from the 'uploads' directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Middleware to log requests
 app.use((req, res, next) => {
@@ -70,7 +77,7 @@ app.get('/api/hotel/:slug/rooms', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
